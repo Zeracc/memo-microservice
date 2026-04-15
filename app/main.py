@@ -4,13 +4,13 @@ import time
 from typing import AsyncIterator
 
 from fastapi import FastAPI, Request
-from redis.asyncio import Redis
 from starlette.responses import Response
 
 from app.api.jobs import router as jobs_router
 from app.api.routes import router as api_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
+from app.dependencies.redis import create_redis_client
 
 
 configure_logging()
@@ -21,14 +21,14 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Reuse one Redis client across the app lifecycle.
-    redis_client = Redis.from_url(settings.redis_url, encoding="utf-8", decode_responses=True)
+    redis_client = create_redis_client(settings.redis_url)
     app.state.redis = redis_client
 
     logger.info("Starting application: %s", settings.app_name)
     try:
         yield
     finally:
-        await redis_client.close()
+        await redis_client.aclose()
         logger.info("Application shutdown complete")
 
 

@@ -1,14 +1,16 @@
-import asyncio
 import logging
 from datetime import datetime, timezone
+from typing import Any
 from uuid import uuid4
 
+from app.domain.job_status import JobStatus
 from app.schemas.job import (
+    JobErrorDetail,
     JobInput,
     JobProcessRequest,
+    JobProgressEvent,
     JobQueuedResponse,
     JobResult,
-    JobStatus,
     JobStatusResponse,
 )
 from app.services.redis_service import RedisService
@@ -23,13 +25,26 @@ class JobService:
 
     async def create_job(self, payload: JobProcessRequest) -> JobQueuedResponse:
         now = self._utc_now()
+        queued_event = self._build_progress_event(
+            phase="queued",
+            progress_percentage=0,
+            message="Job enfileirado com sucesso.",
+            progress_detail=None,
+            status=JobStatus.QUEUED,
+            recorded_at=now,
+        )
         job_id = str(uuid4())
         job = JobStatusResponse(
             job_id=job_id,
             status=JobStatus.QUEUED,
             input=JobInput(text=payload.text),
+            message=queued_event.message,
             result=None,
             error=None,
+            phase=queued_event.phase,
+            progress_percentage=queued_event.progress_percentage,
+            progress_detail=queued_event.progress_detail,
+            progress_history=[queued_event],
             created_at=now,
             updated_at=now,
         )
@@ -44,56 +59,177 @@ class JobService:
         logger.info("Job fetched: %s (%s)", job_id, "found" if job else "not found")
         return job
 
-    async def process_job(self, job_id: str) -> None:
-        job = await self.redis_service.get_job(job_id)
-        if job is None:
-            logger.warning("Job %s was not found when background processing started", job_id)
-            return
+    async def mark_processing(
+        self,
+        job_id: str,
+        *,
+        message: str | None = None,
+    ) -> JobStatusResponse | None:
+        job = await self._update_job(
+            job_id,
+            status=JobStatus.PROCESSING,
+            phase="processing",
+            progress_percentage=None,
+            message=message,
+            progress_detail=None,
+            error=None,
+        )
+        if job is not None:
+            logger.info("Job processing started: %s", job_id)
+        return job
 
-        processing_job = await self.redis_service.update_job(
+    async def update_progress(
+        self,
+        job_id: str,
+        *,
+        phase: str,
+        progress_percentage: int,
+        message: str | None = None,
+        progress_detail: dict[str, Any] | None = None,
+    ) -> JobStatusResponse | None:
+        job = await self._update_job(
+            job_id,
+            status=JobStatus.PROCESSING,
+            phase=phase,
+            progress_percentage=progress_percentage,
+            message=message,
+            progress_detail=progress_detail,
+            error=None,
+        )
+        if job is not None:
+            logger.info(
+                "Job progress updated: %s phase=%s progress=%s",
+                job_id,
+                phase,
+                progress_percentage,
+            )
+        return job
+
+    async def mark_completed(
+        self,
+        job_id: str,
+        result: JobResult,
+        *,
+        message: str | None = None,
+    ) -> JobStatusResponse | None:
+        job = await self._update_job(
+            job_id,
+            status=JobStatus.COMPLETED,
+            phase="completed",
+            progress_percentage=100,
+            message=message or "Processamento concluido com sucesso.",
+            progress_detail=None,
+            error=None,
+            result=result,
+        )
+        if job is not None:
+            logger.info("Job completed: %s", job_id)
+        return job
+
+    async def mark_failed(
+        self,
+        job_id: str,
+        error: str | dict[str, Any] | JobErrorDetail,
+        *,
+        message: str | None = None,
+        phase: str | None = None,
+    ) -> JobStatusResponse | None:
+        error_payload = self._normalize_error(error=error, phase=phase)
+        job = await self._update_job(
+            job_id,
+            status=JobStatus.FAILED,
+            phase=phase or error_payload.phase or "failed",
+            progress_percentage=None,
+            message=message or "Falha no processamento do job.",
+            progress_detail=None,
+            error=error_payload,
+        )
+        if job is not None:
+            logger.error("Job failed: %s", job_id)
+        return job
+
+    async def _update_job(
+        self,
+        job_id: str,
+        *,
+        status: JobStatus,
+        phase: str | None,
+        progress_percentage: int | None,
+        message: str | None,
+        progress_detail: dict[str, Any] | None,
+        error: str | JobErrorDetail | None,
+        result: JobResult | None = None,
+    ) -> JobStatusResponse | None:
+        current_job = await self.redis_service.get_job(job_id)
+        if current_job is None:
+            return None
+
+        now = self._utc_now()
+        history = list(current_job.progress_history)
+        if phase is not None:
+            history.append(
+                self._build_progress_event(
+                    phase=phase,
+                    progress_percentage=progress_percentage,
+                    message=message,
+                    progress_detail=progress_detail,
+                    status=status,
+                    recorded_at=now,
+                )
+            )
+
+        return await self.redis_service.update_job(
             job_id,
             {
-                "status": JobStatus.PROCESSING,
-                "updated_at": self._utc_now(),
-                "error": None,
+                "status": status,
+                "phase": phase,
+                "progress_percentage": progress_percentage,
+                "message": message,
+                "progress_detail": progress_detail,
+                "progress_history": history,
+                "error": error,
+                "result": result if result is not None else current_job.result,
+                "updated_at": now,
             },
         )
-        if processing_job is None:
-            logger.warning("Job %s disappeared before it could move to processing", job_id)
-            return
 
-        logger.info("Job processing started: %s", job_id)
+    @staticmethod
+    def _build_progress_event(
+        *,
+        phase: str,
+        progress_percentage: int | None,
+        message: str | None,
+        progress_detail: dict[str, Any] | None,
+        status: JobStatus,
+        recorded_at: datetime,
+    ) -> JobProgressEvent:
+        return JobProgressEvent(
+            phase=phase,
+            progress_percentage=progress_percentage if progress_percentage is not None else 0,
+            message=message,
+            progress_detail=progress_detail,
+            status=status,
+            recorded_at=recorded_at,
+        )
 
-        try:
-            await asyncio.sleep(3)
-
-            result = JobResult(processed_text=processing_job.input.text.upper())
-            await self.redis_service.update_job(
-                job_id,
-                {
-                    "status": JobStatus.COMPLETED,
-                    "result": result,
-                    "error": None,
-                    "updated_at": self._utc_now(),
-                },
+    @staticmethod
+    def _normalize_error(
+        *,
+        error: str | dict[str, Any] | JobErrorDetail,
+        phase: str | None,
+    ) -> str | JobErrorDetail:
+        if isinstance(error, JobErrorDetail):
+            return error.model_copy(update={"phase": phase or error.phase})
+        if isinstance(error, dict):
+            return JobErrorDetail(
+                type=str(error.get("type", "JobError")),
+                message=str(error.get("message", "Unknown error")),
+                phase=phase or (str(error["phase"]) if error.get("phase") else None),
             )
-            logger.info("Job completed: %s", job_id)
-        except Exception as exc:
-            error_message = str(exc) or exc.__class__.__name__
-            try:
-                await self._mark_job_failed(job_id, error_message)
-            except Exception:
-                logger.exception("Failed to persist failed status for job %s", job_id)
-            logger.exception("Job failed: %s", job_id)
-
-    async def _mark_job_failed(self, job_id: str, error_message: str) -> None:
-        await self.redis_service.update_job(
-            job_id,
-            {
-                "status": JobStatus.FAILED,
-                "error": error_message,
-                "updated_at": self._utc_now(),
-            },
+        return JobErrorDetail(
+            type="JobError",
+            message=error,
+            phase=phase,
         )
 
     @staticmethod
