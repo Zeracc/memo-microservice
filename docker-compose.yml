@@ -11,6 +11,7 @@ services:
     volumes:
       - .:/app
     depends_on:
+      - postgres
       - redis
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
@@ -24,11 +25,27 @@ services:
     volumes:
       - .:/app
     depends_on:
+      - postgres
       - redis
     command: celery -A app.core.celery_app.celery_app worker --loglevel=info
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: memo-postgres
+    environment:
+      POSTGRES_DB: memo
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
     container_name: memo-redis
     ports:
       - "6379:6379"
+
+volumes:
+  postgres_data:

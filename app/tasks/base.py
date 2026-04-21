@@ -6,6 +6,7 @@ from celery import Task
 from redis.asyncio import Redis
 
 from app.core.config import get_settings
+from app.core.database import dispose_database
 from app.dependencies.redis import get_redis_client_for_worker
 from app.services.job_service import JobService
 from app.services.redis_service import RedisService
@@ -35,3 +36,4 @@ class JobAwareTask(Task, ABC):
             return await self.run_async(job_service, *args, **kwargs)
         finally:
             await redis.aclose()
+            await dispose_database()

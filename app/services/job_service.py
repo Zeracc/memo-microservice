@@ -24,11 +24,22 @@ class JobService:
         self.redis_service = redis_service
 
     async def create_job(self, payload: JobProcessRequest) -> JobQueuedResponse:
+        return await self.create_tracking_job(
+            JobInput(text=payload.text),
+            message="Job enfileirado com sucesso.",
+        )
+
+    async def create_tracking_job(
+        self,
+        job_input: JobInput,
+        *,
+        message: str,
+    ) -> JobQueuedResponse:
         now = self._utc_now()
         queued_event = self._build_progress_event(
             phase="queued",
             progress_percentage=0,
-            message="Job enfileirado com sucesso.",
+            message=message,
             progress_detail=None,
             status=JobStatus.QUEUED,
             recorded_at=now,
@@ -37,7 +48,7 @@ class JobService:
         job = JobStatusResponse(
             job_id=job_id,
             status=JobStatus.QUEUED,
-            input=JobInput(text=payload.text),
+            input=job_input,
             message=queued_event.message,
             result=None,
             error=None,
