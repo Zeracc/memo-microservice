@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Annotated, Any
+from uuid import UUID
 
 from pydantic import BaseModel, Field, StringConstraints
 
@@ -11,15 +12,24 @@ class JobProcessRequest(BaseModel):
 
 
 class JobInput(BaseModel):
-    text: str
+    text: str | None = None
+    notification_id: UUID | None = None
+    recipient: str | None = None
+    external_id: str | None = None
+    payload: dict[str, Any] = Field(default_factory=dict)
 
 
 class JobResult(BaseModel):
-    processed_text: str
-    document_id: str
-    summary: str
+    processed_text: str | None = None
+    document_id: str | None = None
+    summary: str | None = None
     keywords: list[str] = Field(default_factory=list)
-    recommendation_count: int
+    recommendation_count: int | None = None
+    notification_id: UUID | None = None
+    provider: str | None = None
+    provider_message_id: str | None = None
+    provider_status: str | None = None
+    provider_response: dict[str, Any] | None = None
     completed_at: datetime
 
 

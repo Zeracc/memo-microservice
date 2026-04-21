@@ -7,8 +7,10 @@ from fastapi import FastAPI, Request
 from starlette.responses import Response
 
 from app.api.jobs import router as jobs_router
+from app.api.notifications import router as notifications_router
 from app.api.routes import router as api_router
 from app.core.config import get_settings
+from app.core.database import dispose_database, init_database
 from app.core.logging import configure_logging
 from app.dependencies.redis import create_redis_client
 
@@ -26,15 +28,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     logger.info("Starting application: %s", settings.app_name)
     try:
+        await init_database()
         yield
     finally:
         await redis_client.aclose()
+        await dispose_database()
         logger.info("Application shutdown complete")
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 app.include_router(api_router)
 app.include_router(jobs_router)
+app.include_router(notifications_router)
 
 
 @app.middleware("http")

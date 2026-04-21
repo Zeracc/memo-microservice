@@ -9,7 +9,7 @@ celery_app = Celery(
     "memo_microservice",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
-    include=["app.tasks.process_text"],
+    include=["app.tasks.process_text", "app.tasks.send_notification"],
 )
 
 celery_app.conf.update(

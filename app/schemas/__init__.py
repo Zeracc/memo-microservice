@@ -8,6 +8,12 @@ from app.schemas.job import (
     JobResult,
     JobStatusResponse,
 )
+from app.schemas.notification import (
+    NotificationCreateRequest,
+    NotificationCreateResponse,
+    NotificationListResponse,
+    NotificationResponse,
+)
 
 
 __all__ = [
@@ -19,4 +25,8 @@ __all__ = [
     "JobResult",
     "JobStatus",
     "JobStatusResponse",
+    "NotificationCreateRequest",
+    "NotificationCreateResponse",
+    "NotificationListResponse",
+    "NotificationResponse",
 ]
