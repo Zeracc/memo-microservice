@@ -66,7 +66,7 @@ docker compose up --build
 
 
 
-  Principais Funcionalidades
+## Principais Funcionalidades
 Processamento assíncrono de notificações (padrão fila + worker)
 Suporte à idempotência via external_id
 Mecanismo de retry com controle de tentativas
@@ -77,12 +77,12 @@ Tratamento de falhas com registro de erros
 Expiração de jobs via TTL (Redis)
 Separação clara entre camada de API e processamento
 
-  Arquitetura
+## Arquitetura
 A API recebe a requisição e persiste no banco de dados
 Um job é criado e enviado para a fila (Redis)
 Workers consomem a fila e processam as notificações
 O status é atualizado no banco e no sistema de jobs
-  Stack Tecnológica
+## Stack Tecnológica
 Backend: FastAPI
 Linguagem: Python
 Banco de Dados: PostgreSQL (via Supabase)
@@ -91,7 +91,7 @@ Processamento Assíncrono: Worker custom (preparado para evolução com Celery)
 Containerização: Docker
 Integração futura: APIs de mensageria (ex: Uazapi)
 
-  Conceitos Aplicados
+## Conceitos Aplicados
 Arquitetura de microsserviços
 Processamento assíncrono com fila
 Design de APIs idempotentes
@@ -99,12 +99,12 @@ Estratégias de retry e tolerância a falhas
 Desacoplamento entre serviços
 Base preparada para evolução para service bus (RabbitMQ, Kafka, etc.)
 
-  Casos de Uso
+## Casos de Uso
 Envio de notificações (WhatsApp, SMS, Email)
 Processamento de tarefas em background
 Integração com APIs externas
 Sistemas orientados a eventos
 
-  Objetivo do Projeto
+## Objetivo do Projeto
 
 Demonstrar a construção de um microsserviço backend com características de produção, preparado para escalar e evoluir para arquiteturas mais robustas com mensageria avançada (service bus), mantendo boas práticas de engenharia de software.
