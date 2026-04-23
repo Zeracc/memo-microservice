@@ -1,8 +1,10 @@
 # Memo Microservice
+Microsserviço responsável pelo processamento assíncrono de notificações, projetado com foco em escalabilidade, resiliência e desacoplamento.
+A aplicação expõe uma API REST para criação e acompanhamento de notificações, utilizando uma arquitetura baseada em fila (queue) e workers para garantir processamento eficiente e confiável.
 
 ## Environment
 
-Configure the application and worker with:
+Cofigure a aplicação e o worker da seguinte forma:
 
 ```env
 APP_NAME=Memo Microservice
@@ -61,3 +63,44 @@ With Docker Compose:
 ```bash
 docker compose up --build
 ```
+
+
+
+Principais Funcionalidades
+Processamento assíncrono de notificações (padrão fila + worker)
+Suporte à idempotência via external_id
+Mecanismo de retry com controle de tentativas
+Rastreamento de jobs e status de execução
+Priorização de mensagens (low, normal, high)
+Abstração de provider (preparado para integração com APIs externas)
+Tratamento de falhas com registro de erros
+Expiração de jobs via TTL (Redis)
+Separação clara entre camada de API e processamento
+Arquitetura
+A API recebe a requisição e persiste no banco de dados
+Um job é criado e enviado para a fila (Redis)
+Workers consomem a fila e processam as notificações
+O status é atualizado no banco e no sistema de jobs
+🛠️ Stack Tecnológica
+Backend: FastAPI
+Linguagem: Python
+Banco de Dados: PostgreSQL (via Supabase)
+Fila / Broker: Redis
+Processamento Assíncrono: Worker custom (preparado para evolução com Celery)
+Containerização: Docker
+Integração futura: APIs de mensageria (ex: Uazapi)
+Conceitos Aplicados
+Arquitetura de microsserviços
+Processamento assíncrono com fila
+Design de APIs idempotentes
+Estratégias de retry e tolerância a falhas
+Desacoplamento entre serviços
+Base preparada para evolução para service bus (RabbitMQ, Kafka, etc.)
+Casos de Uso
+Envio de notificações (WhatsApp, SMS, Email)
+Processamento de tarefas em background
+Integração com APIs externas
+Sistemas orientados a eventos
+Objetivo do Projeto
+
+Demonstrar a construção de um microsserviço backend com características de produção, preparado para escalar e evoluir para arquiteturas mais robustas com mensageria avançada (service bus), mantendo boas práticas de engenharia de software.
