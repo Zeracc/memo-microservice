@@ -1,4 +1,4 @@
-# Memo Microservice
+# Microservice
 Microsserviço responsável pelo processamento assíncrono de notificações, projetado com foco em escalabilidade, resiliência e desacoplamento.
 A aplicação expõe uma API REST para criação e acompanhamento de notificações, utilizando uma arquitetura baseada em fila (queue) e workers para garantir processamento eficiente e confiável.
 
@@ -8,7 +8,7 @@ Cofigure a aplicação e o worker da seguinte forma:
 
 ```env
 APP_NAME=Memo Microservice
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/memo
+DATABASE_URL=postgresql+asyncpg:
 DATABASE_AUTO_CREATE=true
 REDIS_URL=redis://redis:6379/0
 JOB_TTL_SECONDS=86400
