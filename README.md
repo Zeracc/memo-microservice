@@ -7,7 +7,7 @@ A aplicação expõe uma API REST para criação e acompanhamento de notificaç�
 Cofigure a aplicação e o worker da seguinte forma:
 
 ```env
-APP_NAME=Memo Microservice
+APP_NAME=Microservice
 DATABASE_URL=postgresql+asyncpg:
 DATABASE_AUTO_CREATE=true
 REDIS_URL=redis://redis:6379/0
@@ -55,7 +55,7 @@ docker run --name memo-redis -p 6379:6379 -d redis:7-alpine
 Migration SQL:
 
 ```bash
-psql postgresql://postgres:postgres@localhost:5432/memo -f migrations/001_create_notifications.sql
+psql postgresql://postgres: resto da url -f migrations/001_create_notifications.sql
 ```
 
 With Docker Compose:
