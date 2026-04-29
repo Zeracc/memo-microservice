@@ -1,12 +1,12 @@
-# Memo Microservice
+#Microservice
 
 ## Environment
 
 Configure the application and worker with:
 
 ```env
-APP_NAME=Memo Microservice
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/memo
+APP_NAME=Microservice
+DATABASE_URL=
 DATABASE_AUTO_CREATE=true
 REDIS_URL=redis://redis:6379/0
 JOB_TTL_SECONDS=86400
@@ -53,7 +53,7 @@ docker run --name memo-redis -p 6379:6379 -d redis:7-alpine
 Migration SQL:
 
 ```bash
-psql postgresql://postgres:postgres@localhost:5432/memo -f migrations/001_create_notifications.sql
+psql postgresql://postgres resto da url -f migrations/001_create_notifications.sql
 ```
 
 With Docker Compose:
